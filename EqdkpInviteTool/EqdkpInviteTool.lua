@@ -7,6 +7,8 @@ local ScrollingTable = LibStub("ScrollingTable");
 local EIT_GUI_RaidsTableSelection = nil;
 local EIT_GUI_RaidStatesTableSelection = nil;
 
+local AttendeesTable = {};
+
 -- table definitions
 local EIT_RaidsTableColDef = { 
     {["name"] = "#", ["width"] = 30, ["defaultsort"] = "dsc"}, 
@@ -110,10 +112,12 @@ function CreateMainFrame()
 
 	-- RaidAttendees
 	-- Healers
-	EIT_GUI_RaidHealersTable = CreateScrollingTable(EIT_GUI_RaidHealersTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 200, -50, false);
-	EIT_GUI_RaidTanksTable = CreateScrollingTable(EIT_GUI_RaidTanksTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 400, -50, false);	
-	EIT_GUI_RaidRangesTable = CreateScrollingTable(EIT_GUI_RaidRangesTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 600, -50, false);
-	EIT_GUI_RaidMeleesTable = CreateScrollingTable(EIT_GUI_RaidMeleesTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 800, -50, false);
+	AttendeesTable = {
+		[1] = CreateScrollingTable(EIT_GUI_RaidHealersTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 220, -50, false),
+		[2] = CreateScrollingTable(EIT_GUI_RaidTanksTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 350, -50, false),
+		[3] = CreateScrollingTable(EIT_GUI_RaidRangesTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 480, -50, false),
+		[4] = CreateScrollingTable(EIT_GUI_RaidMeleesTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 610, -50, false)
+	}
 
 	return MainFrame;
 end
@@ -181,24 +185,22 @@ function EIT_GUI_RaidStatesTableUpdate(raidnum)
     EIT_GUI_RaidStatesTable:SetData(EIT_GUI_RaidStatesTableData, true);    
 end
 
-function EIT_GUI_RaidHealersTableUpdate(raidnum, statenum)
+function EIT_GUI_RaidHealersTableUpdate(table, raidnum, statenum, rolenum)
     if (Raids == nil) then return; end
 	
-    local EIT_GUI_RaidHealersTableData = {};
-	print("Attendees!!");
+    local data = {};
 
-	if(statenum == nil) then
-		print("No State!!");
-		EIT_GUI_RaidHealersTable:SetData({}, true);
+	if(statenum == nil) then		
+		table:SetData({}, true);
 		return;
 	end
 
-    for i, v in ipairs(Raids[raidnum]["RaidStates"][statenum]["Roles"][1]["Players"]) do
-        EIT_GUI_RaidHealersTableData[i] = {v["Name"]};
+    for i, v in ipairs(Raids[raidnum]["RaidStates"][statenum]["Roles"][rolenum]["Players"]) do
+        data[i] = {v["Name"]};
     end
     
-    EIT_GUI_RaidHealersTable:ClearSelection();
-    EIT_GUI_RaidHealersTable:SetData(EIT_GUI_RaidHealersTableData, true);    
+    table:ClearSelection();
+    table:SetData(data, true);    
 end
 
 -- event handler functions
@@ -224,9 +226,14 @@ function EIT_GUI_OnUpdateHandler()
 	if (statenum == nil or statenum ~= EIT_GUI_RaidStatesTableSelection) then
         EIT_GUI_RaidStatesTableSelection = statenum;
         if (statenum) then
-            EIT_GUI_RaidHealersTableUpdate(raidnum, statenum);
+			for i, v in ipairs(Raids[raidnum]["RaidStates"][statenum]["Roles"]) do
+				EIT_GUI_RaidHealersTableUpdate(AttendeesTable[i], raidnum, statenum, i);				
+			end
+            --EIT_GUI_RaidHealersTableUpdate(raidnum, statenum);
         else
-            EIT_GUI_RaidHealersTableUpdate(raidnum, nil);
+			for i, v in ipairs(AttendeesTable) do
+				EIT_GUI_RaidHealersTableUpdate(AttendeesTable[i], raidnum, nil, i);
+			end
         end
     end
 end
