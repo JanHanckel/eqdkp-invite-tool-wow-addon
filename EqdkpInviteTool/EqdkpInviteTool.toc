@@ -1,0 +1,12 @@
+## Interface: 70200
+## Title: EqdkpInviteTool
+## Version: 1.0
+## Author: Jan
+
+embeds.xml
+Data/raidData.lua
+
+##EIT_MainFrame.xml
+##EIT_MainFrame.lua
+EqdkpInviteTool.lua
+EqdkpInviteTool.xml
