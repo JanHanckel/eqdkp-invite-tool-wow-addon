@@ -25,12 +25,12 @@ local EIT_GUI_RaidTanksTableColDef = {
 	{["name"] = Raids[1]["RaidStates"][1]["Roles"][2]["Name"] or "Tank", ["width"] = 120}
 }
 
-local EIT_GUI_RaidMeleesTableColDef = {
-	{["name"] = Raids[1]["RaidStates"][1]["Roles"][3]["Name"] or "Melees", ["width"] = 120}
+local EIT_GUI_RaidRangesTableColDef = {
+	{["name"] = Raids[1]["RaidStates"][1]["Roles"][3]["Name"] or "Ranges", ["width"] = 120}
 }
 
-local EIT_GUI_RaidRangesTableColDef = {
-	{["name"] = Raids[1]["RaidStates"][1]["Roles"][4]["Name"] or "Ranges", ["width"] = 120}
+local EIT_GUI_RaidMeleesTableColDef = {
+	{["name"] = Raids[1]["RaidStates"][1]["Roles"][4]["Name"] or "Melees", ["width"] = 120}
 }
 
 function EIT_MainFrame_OnLoad(frame)
@@ -110,9 +110,10 @@ function CreateMainFrame()
 
 	-- RaidAttendees
 	-- Healers
-	EIT_GUI_RaidHealersTable = ScrollingTable:CreateST(EIT_GUI_RaidHealersTableColDef, 12, nil, nil, MainFrame);
-    EIT_GUI_RaidHealersTable.frame:SetPoint("TOPLEFT", MainFrame, "TOPLEFT", 200, -50);
-    EIT_GUI_RaidHealersTable:EnableSelection(false);
+	EIT_GUI_RaidHealersTable = CreateScrollingTable(EIT_GUI_RaidHealersTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 200, -50, false);
+	EIT_GUI_RaidTanksTable = CreateScrollingTable(EIT_GUI_RaidTanksTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 400, -50, false);	
+	EIT_GUI_RaidRangesTable = CreateScrollingTable(EIT_GUI_RaidRangesTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 600, -50, false);
+	EIT_GUI_RaidMeleesTable = CreateScrollingTable(EIT_GUI_RaidMeleesTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 800, -50, false);
 
 	return MainFrame;
 end
@@ -125,6 +126,7 @@ function ToogleFrame ()
 	EIT_GUI_RaidsTableUpdate();
 end
 
+-- # BEGIN GUI HELPERS #
 function CreateButton(point, relativeFrame, relativePoint, xOffset, yOffset, text)
 	local btn = CreateFrame("Button", nil, relativeFrame, "GameMenuButtonTemplate");
 	btn:SetPoint(point, relativeFrame, relativePoint, xOffset, yOffset);
@@ -135,6 +137,16 @@ function CreateButton(point, relativeFrame, relativePoint, xOffset, yOffset, tex
 
 	return btn;
 end
+
+function CreateScrollingTable(tableDef, point, relativeFrame, relativePoint, xOffset, yOffset, enableSelection)
+	local table = ScrollingTable:CreateST(tableDef, 12, nil, nil, relativeFrame);
+    table.frame:SetPoint(point, relativeFrame, relativePoint, xOffset, yOffset);
+    table:EnableSelection(enableSelection);
+
+	return table;
+end
+
+-- # END GUI HELPERS #
 
 function PrintText(...)
     local hex = "00ccff";
