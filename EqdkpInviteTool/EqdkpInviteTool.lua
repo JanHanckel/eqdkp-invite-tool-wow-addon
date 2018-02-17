@@ -139,6 +139,14 @@ function CreateScrollingTable(tableDef, point, relativeFrame, relativePoint, xOf
 	local table = ScrollingTable:CreateST(tableDef, 12, nil, nil, relativeFrame);
     table.frame:SetPoint(point, relativeFrame, relativePoint, xOffset, yOffset);
     table:EnableSelection(enableSelection);
+	
+	table:RegisterEvents({["OnClick"] = function (rowFrame, cellFrame, data, cols, row, realrow, column, scrollingTable, ...)			
+			player = data[row][1];
+			printText("Inviting ", player);
+			InviteUnit(player);
+			return false;
+		end
+	});
 
 	return table;
 end
