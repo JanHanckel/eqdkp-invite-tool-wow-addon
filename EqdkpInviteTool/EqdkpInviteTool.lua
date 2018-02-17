@@ -141,10 +141,10 @@ function CreateScrollingTable(tableDef, point, relativeFrame, relativePoint, xOf
     table:EnableSelection(enableSelection);
 	
 	table:RegisterEvents({["OnClick"] = function (rowFrame, cellFrame, data, cols, row, realrow, column, scrollingTable, ...)			
-			player = data[row][1];
-			printText("Inviting ", player);
+			local player = data[row][1];			
+			PrintText("Inviting ", player);
 			InviteUnit(player);
-			return false;
+			return false;			
 		end
 	});
 
@@ -251,7 +251,7 @@ function InviteTime()
 	local currentPlayer = UnitsToInvite[TimerInfos["tableIter"]]
 	if not (UnitInParty(currentPlayer) or UnitInRaid(currentPlayer)) then
 		if currentPlayer ~= UnitName("player") then			
-			printText("Inviting ", currentPlayer)
+			PrintText("Inviting ", currentPlayer)
 			InviteUnit(currentPlayer)
 		end
 	end
@@ -260,7 +260,7 @@ function InviteTime()
 	end
 	TimerInfos["tableIter"] = TimerInfos["tableIter"] + 1
 	if TimerInfos["tableIter"] > TimerInfos["tableSize"]  then
-		printText("End of invites.")
+		PrintText("End of invites.")
 		MainFrame:CancelTimer(TimerInfos["timer"])
 	end
 end
@@ -277,7 +277,7 @@ function GetUnitsToInvite()
 			end		
 		end
 	else
-		printText("EIT: No players selected!")
+		PrintText("No players selected!");
 	end
 	
 	return units;
