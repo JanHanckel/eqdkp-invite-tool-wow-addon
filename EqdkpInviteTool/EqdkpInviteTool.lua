@@ -1,13 +1,15 @@
--- EqdkpInviteTool = LibStub("AceAddon-3.0"):NewAddon("EqdkpInviteTool", "AceConsole-3.0", "AceEvent-3.0" );
-
 -- locals
 local MainFrame;
 local ScrollingTable = LibStub("ScrollingTable");
+local TimerFactory = LibStub("AceTimer-3.0");
 
 local EIT_GUI_RaidsTableSelection = nil;
 local EIT_GUI_RaidStatesTableSelection = nil;
 
 local AttendeesTable = {};
+local UnitsToInvite = {};
+
+local TimerInfos = {};
 
 -- table definitions
 local EIT_RaidsTableColDef = { 
@@ -44,22 +46,7 @@ function EIT_MainFrame_OnEvent(frame, event, ...)
         local addonName = ...;
 		if (addonName == "EqdkpInviteTool") then
             
-			frame:UnregisterEvent("ADDON_LOADED");
-
-			-- allows using left and right buttons to move through chat 'edit' box
-			for i = 1, NUM_CHAT_WINDOWS do
-				_G["ChatFrame"..i.."EditBox"]:SetAltArrowKeyMode(false);
-			end;
-	
-			----------------------------------
-			-- Register Slash Commands!
-			----------------------------------
-
-			SLASH_FRAMESTK1 = "/fs"; -- new slash command for showing framestack tool
-			SlashCmdList.FRAMESTK = function()
-				LoadAddOn("Blizzard_DebugTools");
-				FrameStackTooltip_Toggle();
-			end;			
+			frame:UnregisterEvent("ADDON_LOADED");		
 		
 			SLASH_EIT1 = "/eit";		
 			SlashCmdList.EIT = ToogleFrame;
@@ -71,8 +58,8 @@ end;
 
 function CreateMainFrame()
 	MainFrame = CreateFrame("Frame", "EIT_Main", UIParent, "BasicFrameTemplateWithInset");
-	MainFrame:SetWidth(1000)
-	MainFrame:SetHeight(700)
+	MainFrame:SetWidth(870)
+	MainFrame:SetHeight(500)
 	MainFrame:SetPoint("TOPLEFT", 20, -120)
 	MainFrame:SetShown(false);
 
@@ -84,9 +71,7 @@ function CreateMainFrame()
 	MainFrame:SetScript("OnDragStop", MainFrame.StopMovingOrSizing);
 
 	-- TITLE
-	--MainFrame.title:ClearAllPoints();
 	MainFrame.title = MainFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
-	--MainFrame.title:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE");
 	MainFrame.title:SetPoint("CENTER", MainFrame.TitleBg, "CENTER", 5, 0);
 	MainFrame.title:SetText("Eqdkp Invite Tool");
 
@@ -114,10 +99,18 @@ function CreateMainFrame()
 	-- Healers
 	AttendeesTable = {
 		[1] = CreateScrollingTable(EIT_GUI_RaidHealersTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 220, -50, false),
-		[2] = CreateScrollingTable(EIT_GUI_RaidTanksTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 350, -50, false),
-		[3] = CreateScrollingTable(EIT_GUI_RaidRangesTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 480, -50, false),
-		[4] = CreateScrollingTable(EIT_GUI_RaidMeleesTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 610, -50, false)
+		[2] = CreateScrollingTable(EIT_GUI_RaidTanksTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 380, -50, false),
+		[3] = CreateScrollingTable(EIT_GUI_RaidRangesTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 540, -50, false),
+		[4] = CreateScrollingTable(EIT_GUI_RaidMeleesTableColDef, "TOPLEFT", MainFrame, "TOPLEFT", 700, -50, false)
 	}
+
+	-- BUTTON
+	MainFrame.inviteButton = CreateButton("RIGHT", MainFrame, "RIGHT", -20, -20, "Invite to Raid");
+	MainFrame.inviteButton:SetScript("OnClick", 
+		function() 
+			RaidInvite() 
+		end
+	);
 
 	return MainFrame;
 end
@@ -185,7 +178,7 @@ function EIT_GUI_RaidStatesTableUpdate(raidnum)
     EIT_GUI_RaidStatesTable:SetData(EIT_GUI_RaidStatesTableData, true);    
 end
 
-function EIT_GUI_RaidHealersTableUpdate(table, raidnum, statenum, rolenum)
+function EIT_GUI_AttendeesUpdate(table, raidnum, statenum, rolenum)
     if (Raids == nil) then return; end
 	
     local data = {};
@@ -207,8 +200,7 @@ end
 function EIT_GUI_OnUpdateHandler()
     local raidnum = EIT_GUI_RaidsTable:GetSelection();
     
-    if (raidnum ~= EIT_GUI_RaidsTableSelection) then
-		print("Selected Raid: "..raidnum);
+    if (raidnum ~= EIT_GUI_RaidsTableSelection) then		
         EIT_GUI_RaidsTableSelection = raidnum;
         if (raidnum) then
             EIT_GUI_RaidStatesTableUpdate(raidnum);
@@ -218,22 +210,67 @@ function EIT_GUI_OnUpdateHandler()
     end
     
 	local statenum = EIT_GUI_RaidStatesTable:GetSelection();
-	if (statenum and statenum ~= EIT_GUI_RaidStatesTableSelection) then
-		print("Selected State: "..statenum);	
-	end
-		
 	
 	if (statenum == nil or statenum ~= EIT_GUI_RaidStatesTableSelection) then
         EIT_GUI_RaidStatesTableSelection = statenum;
         if (statenum) then
 			for i, v in ipairs(Raids[raidnum]["RaidStates"][statenum]["Roles"]) do
-				EIT_GUI_RaidHealersTableUpdate(AttendeesTable[i], raidnum, statenum, i);				
+				EIT_GUI_AttendeesUpdate(AttendeesTable[i], raidnum, statenum, i);				
 			end
-            --EIT_GUI_RaidHealersTableUpdate(raidnum, statenum);
         else
 			for i, v in ipairs(AttendeesTable) do
-				EIT_GUI_RaidHealersTableUpdate(AttendeesTable[i], raidnum, nil, i);
+				EIT_GUI_AttendeesUpdate(AttendeesTable[i], raidnum, nil, i);
 			end
         end
     end
+end
+
+
+function RaidInvite()
+	UnitsToInvite = GetUnitsToInvite();
+	
+	if (table.getn(UnitsToInvite) <= 0) then return; end
+
+	TimerInfos["playerName"] = UnitName("player")
+	TimerInfos["timerCount"] = 0
+	TimerInfos["groupMems"] = 0
+	TimerInfos["tableSize"] = table.getn(UnitsToInvite)
+	TimerInfos["tableIter"] = 1
+	TimerInfos["timer"] = TimerFactory:ScheduleRepeatingTimer(InviteTime, .5)
+end
+
+function InviteTime()	
+	local currentPlayer = UnitsToInvite[TimerInfos["tableIter"]]
+	if not (UnitInParty(currentPlayer) or UnitInRaid(currentPlayer)) then
+		if currentPlayer ~= UnitName("player") then			
+			printText("Inviting ", currentPlayer)
+			InviteUnit(currentPlayer)
+		end
+	end
+	if not IsInRaid(player) then
+		ConvertToRaid()
+	end
+	TimerInfos["tableIter"] = TimerInfos["tableIter"] + 1
+	if TimerInfos["tableIter"] > TimerInfos["tableSize"]  then
+		printText("End of invites.")
+		MainFrame:CancelTimer(TimerInfos["timer"])
+	end
+end
+
+function GetUnitsToInvite()
+	local raidnum = EIT_GUI_RaidsTable:GetSelection();    
+	local statenum = EIT_GUI_RaidStatesTable:GetSelection();	
+	local units = {};
+	
+	if(raidnum ~= nil and statenum ~= nil) then
+		for i, v in ipairs(Raids[raidnum]["RaidStates"][statenum]["Roles"]) do		
+			for j, w in ipairs(v["Players"]) do
+				table.insert(units, w["Name"]);
+			end		
+		end
+	else
+		printText("EIT: No players selected!")
+	end
+	
+	return units;
 end
